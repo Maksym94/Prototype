@@ -1,11 +1,17 @@
 package sudoku;
 
+import lombok.extern.log4j.Log4j2;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static sudoku.Type.COLUMN;
+import static sudoku.Type.ROW;
+
+@Log4j2
 public class Solver {
 
     private static final int ARR_SIZE = 9;
@@ -40,7 +46,6 @@ public class Solver {
 
         new Solver().solve(array);
         prettyPrint(array);
-        new Solver().localTablesMethod(array);
     }
 
     private static void prettyPrint(int[][] array) {
@@ -69,10 +74,13 @@ public class Solver {
         amountOfVerticalSquares = getAmountVerticalSquares(sudoku);
 
         smallSquaresMethod(sudoku);
-        if (!isSudokuFilled(sudoku)) {
+        if (isSudokuHasEmptyCells(sudoku)) {
             columnRowsMethod(sudoku);
         }
-        if (!isNumbersUniqueForAllSquares(sudoku) || !isNumbersUniqueForLine(sudoku)) {
+        if (isSudokuHasEmptyCells(sudoku)) {
+            localTablesMethod(sudoku);
+        }
+        if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
             prettyPrint(sudoku);
             throw new SudokuException("Wrong input data. Sudoku can't be solved");
         }
@@ -196,15 +204,15 @@ public class Solver {
     }
 
     private void columnRowsMethod(int[][] sudoku) {
-        boolean isFindNumberWhichToFill = findOutToFillColumns(sudoku) | findOutNumberToFillRows(sudoku);
-        if (isFindNumberWhichToFill) {
+        boolean isFoundNumberToFill = findOutToFillColumns(sudoku) | findOutNumberToFillRows(sudoku);
+        if (isFoundNumberToFill) {
             smallSquaresMethod(sudoku);
         }
-        if (!isSudokuFilled(sudoku) && isFindNumberWhichToFill) {
+        if (isSudokuHasEmptyCells(sudoku) && isFoundNumberToFill) {
             columnRowsMethod(sudoku);
         }
-        if (!isFindNumberWhichToFill) {
-            if (!isNumbersUniqueForAllSquares(sudoku) || !isNumbersUniqueForLine(sudoku)) {
+        if (!isFoundNumberToFill) {
+            if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
                 prettyPrint(sudoku);
                 throw new SudokuException("Wrong input data. Sudoku can't be solved");
             }
@@ -250,7 +258,7 @@ public class Solver {
             int possiblePosition = -1;
             for (int i = 0; i < sudoku.length; i++) {
                 if (sudoku[i][indexColumn] == 0) {
-                    if (!isNumberFreeForSquare(number, i, indexColumn, sudoku)) {
+                    if (isNumberBusyForSquare(number, i, indexColumn, sudoku)) {
                         occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
                         occupiedNumbersForChars.get(i).add(number);
                         continue;
@@ -323,7 +331,7 @@ public class Solver {
             int possiblePosition = -1;
             for (int i = 0; i < sudoku.length; i++) {
                 if (sudoku[indexRow][i] == 0) {
-                    if (!isNumberFreeForSquare(number, indexRow, i, sudoku)) {
+                    if (isNumberBusyForSquare(number, indexRow, i, sudoku)) {
                         occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
                         occupiedNumbersForChars.get(i).add(number);
                         continue;
@@ -361,7 +369,7 @@ public class Solver {
             if (numbers.size() == numbersToCheckInRow.length - 1) {
                 for (int possibleNumber : numbersToCheckInRow) {
                     if (!numbers.contains(possibleNumber)) {
-                        if(item.isColumn()){
+                        if (item.isColumn()) {
                             sudoku[index][item.getIndex()] = possibleNumber;
                         } else {
                             sudoku[item.getIndex()][index] = possibleNumber;
@@ -375,23 +383,37 @@ public class Solver {
     }
 
     private void localTablesMethod(int[][] sudoku) {
-        boolean result = columnLocalTable(sudoku);
-        System.out.println("------------------------------");
-        result = result | rowLocalTable(sudoku);
+        boolean isFoundNumberToFill = columnLocalTable(sudoku) | rowLocalTable(sudoku) | squareLocalTable(sudoku);
+        if (isFoundNumberToFill) {
+            columnRowsMethod(sudoku);
+        }
+        if (isSudokuHasEmptyCells(sudoku) && isFoundNumberToFill) {
+            localTablesMethod(sudoku);
+        }
+        if (!isFoundNumberToFill) {
+            if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
+                prettyPrint(sudoku);
+                throw new SudokuException("Wrong input data. Sudoku can't be solved");
+            }
+        }
     }
 
     private boolean rowLocalTable(int[][] sudoku) {
         boolean result = false;
-        for (int i = 0; i <sudoku.length; i++) {
+        for (int i = 0; i < sudoku.length; i++) {
             int[] row = sudoku[i];
-            /*Set<Integer> rowUnknownNumbers = getUnknownNumbersFromArray(row);
-            Map<Cell, Set<Integer>> squareKnownNumbers = getSquaresKnownNumbers(false, i, sudoku);*/
-            Map<Integer, Set<Integer>> columnTable = fillLocalTable(false, sudoku, i, row);
-            for (Map.Entry<Integer, Set<Integer>> entry:columnTable.entrySet()) {
-                System.out.println(String.format("%d:%d, values: %s",entry.getKey(),i, entry.getValue()));
+            Map<Integer, Set<Integer>> rowTable = getLocalTable(false, sudoku, i, row);
+            reduceLocalTable(rowTable);
+            boolean reduced = reduceLocalTable(rowTable);
+            if (reduced) {
+                result = result | fillFromLocalTable(ROW, sudoku, i, rowTable);
+            }
+            for (Map.Entry<Integer, Set<Integer>> entry : rowTable.entrySet()) {
+                System.out.println(String.format("%d:%d, values: %s", entry.getKey(), i, entry.getValue()));
             }
             System.out.println();
         }
+        System.out.println("---------------------------------------");
         return result;
     }
 
@@ -399,31 +421,84 @@ public class Solver {
         boolean result = false;
         for (int i = 0; i < sudoku.length; i++) {
             int[] column = getColumn(i, sudoku);
-            //Set<Integer> columnKnownNumbers = getKnownNumbersFromArray(column);
-            Map<Integer, Set<Integer>> columnTable = fillLocalTable(true, sudoku, i, column);
-            result = reduceLocalTableAndFillCell(true, sudoku, i, columnTable);
-            for (Map.Entry<Integer, Set<Integer>> entry:columnTable.entrySet()) {
-                System.out.println(String.format("%d:%d, values: %s",entry.getKey(),i, entry.getValue()));
+            Map<Integer, Set<Integer>> columnTable = getLocalTable(true, sudoku, i, column);
+            boolean reduced = reduceLocalTable(columnTable);
+            if (reduced) {
+                result = result | fillFromLocalTable(COLUMN, sudoku, i, columnTable);
+            }
+            for (Map.Entry<Integer, Set<Integer>> entry : columnTable.entrySet()) {
+                System.out.println(String.format("%d:%d, values: %s", entry.getKey(), i, entry.getValue()));
             }
             System.out.println();
         }
         return result;
     }
 
-    private boolean reduceLocalTableAndFillCell(boolean isColumn, int[][] sudoku, int index,
-                                                Map<Integer, Set<Integer>> localTable) {
-        boolean result = false;
-        Map<Integer, Integer> numbersLength = new HashMap<>();
-        for (Map.Entry<Integer, Set<Integer>> entry: localTable.entrySet()) {
-            int cellPossibleNumbersSize = entry.getValue().size();
-            int repeats = numbersLength.getOrDefault(cellPossibleNumbersSize, 0);
-            numbersLength.put(cellPossibleNumbersSize, ++repeats);
+    private boolean squareLocalTable(int[][] sudoku) {
+        for (int i = 0; i < sudoku.length; i++) {
         }
-        for (Map.Entry<Integer, Integer> entry: numbersLength.entrySet()) {
-            int numberLength = entry.getKey();
-            int numberRepeats = entry.getKey();
+        return false;
+    }
+
+
+    private boolean fillFromLocalTable(Type type, int[][] sudoku, int index, Map<Integer, Set<Integer>> table) {
+        boolean result = false;
+        for (Map.Entry<Integer, Set<Integer>> entry : table.entrySet()) {
+            Integer tableIndex = entry.getKey();
+            Set<Integer> row = entry.getValue();
+            if (row.size() == 1) {
+                if (type.equals(COLUMN)) {
+                    sudoku[index][tableIndex] = row.iterator().next();
+                } else {
+                    sudoku[tableIndex][index] = row.iterator().next();
+                }
+                result = true;
+            }
         }
         return result;
+    }
+
+    private boolean reduceLocalTable(Map<Integer, Set<Integer>> table) {
+        boolean result = false;
+        Map<Integer, Set<Integer>> repeatedRows = getRepeatedTableRows(table);
+
+        for (Map.Entry<Integer, Set<Integer>> entry : table.entrySet()) {
+            Integer indexRow = entry.getKey();
+            Set<Integer> row = entry.getValue();
+            Set<Integer> repeatedRowsIndexes = repeatedRows.get(indexRow);
+            if (row.size() != repeatedRowsIndexes.size()) {
+                continue;
+            }
+            for (Map.Entry<Integer, Set<Integer>> innerEntry : table.entrySet()) {
+                Integer innerRowIndex = innerEntry.getKey();
+                if (!repeatedRowsIndexes.contains(innerRowIndex)) {
+                    Set<Integer> innerRow = table.get(innerRowIndex);
+                    for (Integer number : row) {
+                        innerRow.remove(number);
+                        result = true;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<Integer, Set<Integer>> getRepeatedTableRows(Map<Integer, Set<Integer>> table) {
+        Map<Integer, Set<Integer>> repeatedRows = new HashMap<>();
+        for (Map.Entry<Integer, Set<Integer>> entry : table.entrySet()) {
+            Integer indexRow = entry.getKey();
+            Set<Integer> row = entry.getValue();
+            for (Map.Entry<Integer, Set<Integer>> innerEntry : table.entrySet()) {
+                Set<Integer> innerRow = innerEntry.getValue();
+                if (row.equals(innerRow)) {
+                    repeatedRows.putIfAbsent(indexRow, new HashSet<>());
+
+                    Integer innerIndexRow = innerEntry.getKey();
+                    repeatedRows.get(indexRow).add(innerIndexRow);
+                }
+            }
+        }
+        return repeatedRows;
     }
 
     private Map<Cell, Set<Integer>> getSquaresKnownNumbers(boolean isColumn, int index, int[][] sudoku) {
@@ -433,7 +508,7 @@ public class Solver {
         for (int i = 0; i < sudoku.length; i++) {
             int[] squareIndexes = isColumn ? findOutSquareFromIndexes(i, index) : findOutSquareFromIndexes(index, i);
             Cell cell = getCell(isColumn, index, i);
-            if(Arrays.equals(squareIndexes, prevSquareIndexes)) {
+            if (Arrays.equals(squareIndexes, prevSquareIndexes)) {
                 squaresKnownNumbers.put(cell, prevSquareKnownNumbers);
             } else {
                 Set<Integer> squareKnownNumbers = getKnownNumbersFromSquare(squareIndexes, sudoku);
@@ -459,10 +534,10 @@ public class Solver {
         return squareKnownNumbers;
     }
 
-    Map<Integer, Set<Integer>> fillLocalTable(boolean isColumn, int[][] sudoku, int outerIndex, int[] array) {
-        Map<Integer, Set<Integer>> columnTable = new HashMap<>();
+    Map<Integer, Set<Integer>> getLocalTable(boolean isColumn, int[][] sudoku, int outerIndex, int[] array) {
+        Map<Integer, Set<Integer>> table = new HashMap<>();
         Set<Integer> lineUnknownNumbers = getUnknownNumbersFromArray(array);
-        System.out.println("Free numbers: "+ lineUnknownNumbers);
+        System.out.println("Free numbers: " + lineUnknownNumbers);
         Map<Cell, Set<Integer>> squareKnownNumbers = getSquaresKnownNumbers(isColumn, outerIndex, sudoku);
         for (int j = 0; j < sudoku.length; j++) {
             for (int unknownNumber : lineUnknownNumbers) {
@@ -474,14 +549,14 @@ public class Solver {
                             break;
                         }
                         if (k == sudoku[outerIndex].length - 1) {
-                            columnTable.putIfAbsent(j, new HashSet<>());
-                            columnTable.get(j).add(unknownNumber);
+                            table.putIfAbsent(j, new HashSet<>());
+                            table.get(j).add(unknownNumber);
                         }
                     }
                 }
             }
         }
-        return columnTable;
+        return table;
     }
 
     private int getValueFromIndexes(boolean isColumn, int outerIndex, int innerIndex, int[][] sudoku) {
@@ -507,6 +582,8 @@ public class Solver {
         return unknownNumbers;
     }
 
+    /*
+    TODO: double check these two commented methods
     private Set<Integer> getKnownNumbersFromArray(int[] array) {
         Set<Integer> knownNumbers = new HashSet<>();
         for (int number : array) {
@@ -526,7 +603,7 @@ public class Solver {
             }
         }
         return knownNumbers;
-    }
+    }*/
 
     int[] getColumn(int columnIndex, int[][] sudoku) {
         int[] columnValues = new int[sudoku.length];
@@ -536,9 +613,9 @@ public class Solver {
         return columnValues;
     }
 
-    private boolean isNumberFreeForSquare(int number, int indexRow, int indexColumn, int[][] sudoku) {
+    private boolean isNumberBusyForSquare(int number, int indexRow, int indexColumn, int[][] sudoku) {
         int[] indexesSquare = findOutSquareFromIndexes(indexRow, indexColumn);
-        return isNumberUniqueForSquare(number, indexesSquare[0], indexesSquare[1], sudoku);
+        return !isNumberUniqueForSquare(number, indexesSquare[0], indexesSquare[1], sudoku);
     }
 
     private int[] findOutSquareFromIndexes(int indexRow, int indexColumn) {
@@ -592,37 +669,37 @@ public class Solver {
         return isFilledWithNewNumber;
     }
 
-    private boolean isSudokuFilled(int[][] sudoku) {
+    private boolean isSudokuHasEmptyCells(int[][] sudoku) {
         for (int[] innerArray : sudoku) {
             for (int value : innerArray) {
                 if (value == 0) {
-                    return false;
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
-    private boolean isNumbersUniqueForLine(int[][] sudoku) {
+    private boolean isNumbersRepeatForLine(int[][] sudoku) {
         for (int i = 0; i < sudoku.length; i++) {
             for (int j = 0; j < sudoku[i].length; j++) {
                 int val = sudoku[i][j];
                 for (int k = j + 1; k < sudoku[i].length; k++) {
                     if (val != 0 && val == sudoku[i][k]) {
-                        return false;
+                        return true;
                     }
                 }
                 for (int k = i + 1; k < sudoku.length; k++) {
                     if (val != 0 && val == sudoku[k][j]) {
-                        return false;
+                        return true;
                     }
                 }
             }
         }
-        return true;
+        return false;
     }
 
-    private boolean isNumbersUniqueForAllSquares(int[][] sudoku) {
+    private boolean isNumbersRepeatForSquares(int[][] sudoku) {
         for (int m = 0; m < amountOfVerticalSquares; m++) {
             int shiftVertical = getShiftVertical(m);
             for (int n = 0; n < amountOfHorizontalSquares; n++) {
@@ -645,7 +722,7 @@ public class Solver {
                                     continue;
                                 }
                                 if (val == sudoku[indexVerticalOfComparedValue][indexHorizontalOfComparedValue]) {
-                                    return false;
+                                    return true;
                                 }
                             }
                         }
@@ -653,7 +730,7 @@ public class Solver {
                 }
             }
         }
-        return true;
+        return false;
     }
 
     private int findOutPossiblePositions(int number, int indexSquareVertical, int indexSquareHorizontal,

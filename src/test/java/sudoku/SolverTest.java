@@ -1,17 +1,16 @@
 package sudoku;
 
-import com.google.common.collect.Sets;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class SolverTest {
 
@@ -21,35 +20,35 @@ public class SolverTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void assertFillVerticalHorizontalLines() throws Exception {
+    public void assertFillVerticalHorizontalLines() {
         int[][] result = new int[][]{
-                {1, 7, 3, 2, 6, 4, 5, 1, 9,},
-                {6, 9, 4, 8, 3, 5, 1, 7, 2,},
-                {5, 2, 8, 9, 1, 7, 3, 6, 4,},
+                {1, 7, 3, 2, 6, 4, 5, 1, 9},
+                {6, 9, 4, 8, 3, 5, 1, 7, 2},
+                {5, 2, 8, 9, 1, 7, 3, 6, 4},
 
-                {4, 5, 7, 8, 9, 3, 1, 2, 6,},
-                {2, 3, 1, 4, 7, 6, 9, 5, 8,},
-                {9, 8, 6, 5, 2, 1, 7, 4, 3,},
+                {4, 5, 7, 8, 9, 3, 1, 2, 6},
+                {2, 3, 1, 4, 7, 6, 9, 5, 8},
+                {9, 8, 6, 5, 2, 1, 7, 4, 3},
 
-                {7, 6, 5, 3, 4, 9, 2, 8, 1,},
-                {3, 4, 2, 1, 5, 8, 6, 9, 7,},
-                {8, 1, 9, 7, 6, 2, 4, 3, 5,}};
+                {7, 6, 5, 3, 4, 9, 2, 8, 1},
+                {3, 4, 2, 1, 5, 8, 6, 9, 7},
+                {8, 1, 9, 7, 6, 2, 4, 3, 5}};
         int[][] inputData = new int[][]{
                 {1, 7, 3, 2, 6, 4, 5, 1, 0},
-                {6, 9, 4, 8, 3, 5, 1, 7, 2,},
-                {5, 2, 8, 9, 1, 7, 3, 6, 4,},
+                {6, 9, 4, 8, 3, 5, 1, 7, 2},
+                {5, 2, 8, 9, 1, 7, 3, 6, 4},
 
-                {0, 5, 7, 8, 9, 3, 1, 2, 6,},
-                {2, 3, 1, 4, 7, 6, 9, 5, 8,},
-                {9, 8, 6, 5, 2, 1, 7, 4, 3,},
+                {0, 5, 7, 8, 9, 3, 1, 2, 6},
+                {2, 3, 1, 4, 7, 6, 9, 5, 8},
+                {9, 8, 6, 5, 2, 1, 7, 4, 3},
 
-                {7, 6, 5, 3, 4, 0, 2, 8, 1,},
-                {3, 4, 2, 1, 5, 8, 6, 9, 7,},
-                {8, 1, 0, 7, 6, 2, 4, 3, 5,}};
+                {7, 6, 5, 3, 4, 0, 2, 8, 1},
+                {3, 4, 2, 1, 5, 8, 6, 9, 7},
+                {8, 1, 0, 7, 6, 2, 4, 3, 5}};
 
         solver.fillNumberInRowAndColumn(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
     }
 
     @Test
@@ -102,7 +101,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
 
         result = new int[][]{
                 {5, 1, 6, 2, 7, 3, 4, 8, 9},
@@ -131,7 +130,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
     }
 
     @Test
@@ -163,7 +162,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
     }
 
     @Test
@@ -196,7 +195,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
     }
 
     @Test
@@ -228,7 +227,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertTrue(Arrays.deepEquals(inputData, result));
+        assertArrayEquals(inputData, result);
     }
 
     @Test
@@ -246,29 +245,29 @@ public class SolverTest {
                 {1, 0, 0, 0, 5, 6, 0, 3, 0},
                 {0, 0, 0, 0, 0, 0, 6, 5, 1}};
         Map<Integer, Set<Integer>> columnTable = new HashMap<>();
-        columnTable.put(0, Sets.newHashSet(2, 3, 7, 9));
-        columnTable.put(1, Sets.newHashSet(3, 6));
-        columnTable.put(4, Sets.newHashSet(3, 6, 9));
-        columnTable.put(5, Sets.newHashSet(3, 9));
-        columnTable.put(8, Sets.newHashSet(2, 3, 7, 9));
+        columnTable.put(0, newHashSet(2, 3, 7, 9));
+        columnTable.put(1, newHashSet(3, 6));
+        columnTable.put(4, newHashSet(3, 6, 9));
+        columnTable.put(5, newHashSet(3, 9));
+        columnTable.put(8, newHashSet(2, 3, 7, 9));
         int columnIdx = 0;
         int[] column = solver.getColumn(columnIdx, inputData);
 
-        Map<Integer, Set<Integer>> columnTableResult = solver.fillLocalTable(true, inputData, columnIdx, column);
+        Map<Integer, Set<Integer>> columnTableResult = solver.getLocalTable(true, inputData, columnIdx, column);
 
         assertEquals(columnTable, columnTableResult);
 
         columnTable.clear();
-        columnTable.put(0, Sets.newHashSet(1, 3, 4, 8, 9));
-        columnTable.put(1, Sets.newHashSet(3, 4, 8));
-        columnTable.put(3, Sets.newHashSet(3, 4));
-        columnTable.put(4, Sets.newHashSet(1, 2, 3, 4));
-        columnTable.put(6, Sets.newHashSet(2, 8, 9));
-        columnTable.put(7, Sets.newHashSet(2, 4, 8, 9));
+        columnTable.put(0, newHashSet(1, 3, 4, 8, 9));
+        columnTable.put(1, newHashSet(3, 4, 8));
+        columnTable.put(3, newHashSet(3, 4));
+        columnTable.put(4, newHashSet(1, 2, 3, 4));
+        columnTable.put(6, newHashSet(2, 8, 9));
+        columnTable.put(7, newHashSet(2, 4, 8, 9));
         columnIdx = 6;
         column = solver.getColumn(columnIdx, inputData);
 
-        columnTableResult = solver.fillLocalTable(true, inputData, columnIdx, column);
+        columnTableResult = solver.getLocalTable(true, inputData, columnIdx, column);
 
         assertEquals(columnTable, columnTableResult);
     }
@@ -288,30 +287,30 @@ public class SolverTest {
                 {1, 0, 0, 0, 5, 6, 0, 3, 0},
                 {0, 0, 0, 0, 0, 0, 6, 5, 1}};
         Map<Integer, Set<Integer>> rowTable = new HashMap<>();
-        rowTable.put(0, Sets.newHashSet(2, 3, 7, 9));
-        rowTable.put(2, Sets.newHashSet(2, 3, 7, 8, 9));
-        rowTable.put(3, Sets.newHashSet(1, 2, 3, 4));
-        rowTable.put(5, Sets.newHashSet(2, 3, 4));
-        rowTable.put(6, Sets.newHashSet(1, 3, 4, 8, 9));
-        rowTable.put(7, Sets.newHashSet(1, 4, 7, 9));
-        rowTable.put(8, Sets.newHashSet(3, 4, 7, 8));
+        rowTable.put(0, newHashSet(2, 3, 7, 9));
+        rowTable.put(2, newHashSet(2, 3, 7, 8, 9));
+        rowTable.put(3, newHashSet(1, 2, 3, 4));
+        rowTable.put(5, newHashSet(2, 3, 4));
+        rowTable.put(6, newHashSet(1, 3, 4, 8, 9));
+        rowTable.put(7, newHashSet(1, 4, 7, 9));
+        rowTable.put(8, newHashSet(3, 4, 7, 8));
         int rowIdx = 0;
 
-        Map<Integer, Set<Integer>> columnTableResult = solver.fillLocalTable(false, inputData, rowIdx,
+        Map<Integer, Set<Integer>> columnTableResult = solver.getLocalTable(false, inputData, rowIdx,
                 inputData[rowIdx]);
 
         assertEquals(rowTable, columnTableResult);
 
         rowTable.clear();
-        rowTable.put(0, Sets.newHashSet(2, 3, 7, 9));
-        rowTable.put(1, Sets.newHashSet(3, 8, 9));
-        rowTable.put(2, Sets.newHashSet(2, 3, 7, 8, 9));
-        rowTable.put(3, Sets.newHashSet(2, 3, 4, 8, 9));
-        rowTable.put(4, Sets.newHashSet(3, 4, 9));
-        rowTable.put(5, Sets.newHashSet(2, 3, 4, 7, 8));
+        rowTable.put(0, newHashSet(2, 3, 7, 9));
+        rowTable.put(1, newHashSet(3, 8, 9));
+        rowTable.put(2, newHashSet(2, 3, 7, 8, 9));
+        rowTable.put(3, newHashSet(2, 3, 4, 8, 9));
+        rowTable.put(4, newHashSet(3, 4, 9));
+        rowTable.put(5, newHashSet(2, 3, 4, 7, 8));
         rowIdx = 8;
 
-        columnTableResult = solver.fillLocalTable(false, inputData, rowIdx, inputData[rowIdx]);
+        columnTableResult = solver.getLocalTable(false, inputData, rowIdx, inputData[rowIdx]);
 
         assertEquals(rowTable, columnTableResult);
     }
