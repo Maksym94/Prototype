@@ -1,12 +1,9 @@
 package sudoku;
 
+import com.google.common.primitives.Ints;
 import lombok.extern.log4j.Log4j2;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static sudoku.Type.COLUMN;
 import static sudoku.Type.ROW;
@@ -14,7 +11,7 @@ import static sudoku.Type.ROW;
 @Log4j2
 public class Solver {
 
-    private static final int ARR_SIZE = 9;
+    private static final int LINE_SIZE = 9;
     private static final int HEIGHT_SQUARE = 3;
     private static final int NUMBER_MIN = 1;
     private static final int NUMBER_MAX = 9;
@@ -65,7 +62,7 @@ public class Solver {
     }
 
     void solve(int[][] sudoku) {
-        checkCorrectArraySize(sudoku);
+        checkArraySize(sudoku);
         if (!isCorrectValuesInArray(sudoku)) {
             System.out.println("Array of values is not in a range of 1...9");
             return;
@@ -80,17 +77,21 @@ public class Solver {
         if (isSudokuHasEmptyCells(sudoku)) {
             localTablesMethod(sudoku);
         }
+        checkRepeatingNumbers(sudoku);
+    }
+
+    private void checkRepeatingNumbers(int[][] sudoku) {
         if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
             prettyPrint(sudoku);
             throw new SudokuException("Wrong input data. Sudoku can't be solved");
         }
     }
 
-    private static void checkCorrectArraySize(int[][] sudoku) {
+    private static void checkArraySize(int[][] sudoku) {
         if (sudoku == null || sudoku.length == 0) {
             throw new SudokuException(String.format("%s array is empty", ARRAY_SIZE_INCORRECT));
         }
-        if (sudoku.length != ARR_SIZE) {
+        if (sudoku.length != LINE_SIZE) {
             throw new SudokuException(String.format("%s actual outer array size is %d", ARRAY_SIZE_INCORRECT,
                     sudoku.length));
         }
@@ -99,7 +100,7 @@ public class Solver {
             if (arr == null || arr.length == 0) {
                 throw new SudokuException(String.format("%s line %d is empty", ARRAY_SIZE_INCORRECT, i));
             }
-            if (arr.length != ARR_SIZE) {
+            if (arr.length != LINE_SIZE) {
                 throw new SudokuException(String.format("line %d has size %d", i, arr.length));
             }
         }
@@ -212,59 +213,71 @@ public class Solver {
             columnRowsMethod(sudoku);
         }
         if (!isFoundNumberToFill) {
-            if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
-                prettyPrint(sudoku);
-                throw new SudokuException("Wrong input data. Sudoku can't be solved");
-            }
+            checkRepeatingNumbers(sudoku);
         }
     }
 
     private boolean findOutToFillColumns(int[][] sudoku) {
         boolean isColumnFilled = false;
         for (int i = 0; i < sudoku.length; i++) {
-            int amountOfFreeNumbersInColumn = 0;
-            for (int j = 0; j < sudoku[i].length; j++) {
-                if (sudoku[j][i] == 0) {
-                    amountOfFreeNumbersInColumn++;
-                }
+            int amountOfFreeNumbersInColumn = getAmountOfFreeNumbersInLine(true, sudoku, i);
+            if (amountOfFreeNumbersInColumn == 0) {
+                continue;
             }
             int[] numbersToCheckInColumn = new int[amountOfFreeNumbersInColumn];
-            int numbersToCheckInColumnIdx = 0;
-            for (int k = NUMBER_MIN; k <= NUMBER_MAX; k++) {
-                for (int l = 0; l < sudoku[i].length; l++) {
-                    if (sudoku[l][i] == k) {
-                        break;
-                    }
-                    if (l == sudoku[i].length - 1) {
-                        if (numbersToCheckInColumnIdx >= amountOfFreeNumbersInColumn) {
-                            return false;
-                        }
-                        numbersToCheckInColumn[numbersToCheckInColumnIdx++] = k;
-                    }
-                }
-            }
-            if (checkOutToFillNumbersInCurrentColumn(i, numbersToCheckInColumn, sudoku)) {
+            if (isFillNumbersToCheckInLine(true, sudoku, i, numbersToCheckInColumn)) {return false;}
+            if (checkOutToFillNumbersInCurrentLine(true, i, numbersToCheckInColumn, sudoku)) {
                 isColumnFilled = true;
             }
         }
         return isColumnFilled;
     }
 
-    private boolean checkOutToFillNumbersInCurrentColumn(int indexColumn, int[] numbersToCheckInColumn, int[][] sudoku) {
+    private boolean isFillNumbersToCheckInLine(boolean isColumn, int[][] sudoku, int outerIndex, int[] numbersToCheckInColumn) {
+        int numbersToCheckInColumnIdx = 0;
+        for (int k = NUMBER_MIN; k <= NUMBER_MAX; k++) {
+            for (int j = 0; j < sudoku.length; j++) {
+                if (isColumn? sudoku[j][outerIndex] == k: sudoku[outerIndex][j] == k) {
+                    break;
+                }
+                if (j == LINE_SIZE - 1) {
+                    if (numbersToCheckInColumnIdx >= numbersToCheckInColumn.length) {
+                        return true;
+                    }
+                    numbersToCheckInColumn[numbersToCheckInColumnIdx++] = k;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getAmountOfFreeNumbersInLine(boolean isColumn, int[][] sudoku, int outerIndex) {
+        int amountOfFreeNumbersInColumn = 0;
+        for (int j = 0; j < sudoku[outerIndex].length; j++) {
+            if (isColumn? sudoku[j][outerIndex] == 0: sudoku[outerIndex][j] == 0) {
+                amountOfFreeNumbersInColumn++;
+            }
+        }
+        return amountOfFreeNumbersInColumn;
+    }
+
+    private boolean checkOutToFillNumbersInCurrentLine(boolean isColumn, int outerIndex, int[] numbersToCheck,
+                                                       int[][] sudoku) {
         boolean isColumnFilled = false;
         Map<Integer, Set<Integer>> occupiedNumbersForChars = new HashMap<>();
-        for (int number : numbersToCheckInColumn) {
+        for (int number : numbersToCheck) {
             int countOfAvailablePositions = 0;
             int possiblePosition = -1;
             for (int i = 0; i < sudoku.length; i++) {
-                if (sudoku[i][indexColumn] == 0) {
-                    if (isNumberBusyForSquare(number, i, indexColumn, sudoku)) {
+                if (isColumn ? sudoku[i][outerIndex] == 0: sudoku[outerIndex][i] == 0) {
+                    if (isColumn ? isNumberBusyForSquare(number, i, outerIndex, sudoku)
+                            :isNumberBusyForSquare(number, outerIndex, i, sudoku) ) {
                         occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
                         occupiedNumbersForChars.get(i).add(number);
                         continue;
                     }
                     for (int j = 0; j < sudoku.length; j++) {
-                        if (sudoku[i][j] == number) {
+                        if (isColumn? sudoku[i][j] == number: sudoku[j][i] == number) {
                             occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
                             occupiedNumbersForChars.get(i).add(number);
                             break;
@@ -277,86 +290,32 @@ public class Solver {
                 }
             }
             if (countOfAvailablePositions == 1) {
-                System.out.println("You filled number " + number + " in position " + possiblePosition + ":"
-                        + indexColumn);
-                sudoku[possiblePosition][indexColumn] = number;
+                if(isColumn){
+                sudoku[possiblePosition][outerIndex] = number;
+                } else {
+                    sudoku[outerIndex][possiblePosition] = number;
+                }
                 isColumnFilled = true;
             }
         }
-        Item item = new Item(indexColumn, true);
-        isColumnFilled = isColumnFilled | fillUnoccupiedNumber(item, numbersToCheckInColumn, sudoku,
-                occupiedNumbersForChars);
+        Item item = new Item(outerIndex, isColumn);
+        isColumnFilled = isColumnFilled | fillUnoccupiedNumber(item, numbersToCheck, sudoku, occupiedNumbersForChars);
         return isColumnFilled;
     }
 
     private boolean findOutNumberToFillRows(int[][] sudoku) {
         boolean isRowFilled = false;
         for (int i = 0; i < sudoku.length; i++) {
-            int amountOfFreeNumbersInRow = 0;
-            for (int j = 0; j < sudoku[i].length; j++) {
-                if (sudoku[i][j] == 0) {
-                    amountOfFreeNumbersInRow++;
-                }
-            }
+            int amountOfFreeNumbersInRow = getAmountOfFreeNumbersInLine(false, sudoku, i);
             if (amountOfFreeNumbersInRow == 0) {
                 continue;
             }
             int[] numbersToCheckInRow = new int[amountOfFreeNumbersInRow];
-            int numbersToCheckInRowIdx = 0;
-            for (int k = NUMBER_MIN; k <= NUMBER_MAX; k++) {
-                for (int l = 0; l < sudoku[i].length; l++) {
-                    if (sudoku[i][l] == k) {
-                        break;
-                    }
-                    if (l == sudoku[i].length - 1) {
-                        if (numbersToCheckInRowIdx >= amountOfFreeNumbersInRow) {
-                            return false;
-                        }
-                        numbersToCheckInRow[numbersToCheckInRowIdx++] = k;
-                    }
-                }
-            }
-            if (checkOutToFillNumbersInCurrentRow(i, numbersToCheckInRow, sudoku)) {
+            if (isFillNumbersToCheckInLine(false, sudoku, i, numbersToCheckInRow)) {return false;}
+            if (checkOutToFillNumbersInCurrentLine(false, i, numbersToCheckInRow, sudoku)) {
                 isRowFilled = true;
             }
         }
-        return isRowFilled;
-    }
-
-    private boolean checkOutToFillNumbersInCurrentRow(int indexRow, int[] numbersToCheckInRow, int[][] sudoku) {
-        boolean isRowFilled = false;
-        Map<Integer, Set<Integer>> occupiedNumbersForChars = new HashMap<>();
-        for (int number : numbersToCheckInRow) {
-            int countOfAvailablePositions = 0;
-            int possiblePosition = -1;
-            for (int i = 0; i < sudoku.length; i++) {
-                if (sudoku[indexRow][i] == 0) {
-                    if (isNumberBusyForSquare(number, indexRow, i, sudoku)) {
-                        occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
-                        occupiedNumbersForChars.get(i).add(number);
-                        continue;
-                    }
-                    for (int j = 0; j < sudoku.length; j++) {
-                        if (sudoku[j][i] == number) {
-                            occupiedNumbersForChars.putIfAbsent(i, new HashSet<>());
-                            occupiedNumbersForChars.get(i).add(number);
-                            break;
-                        }
-                        if (j == sudoku.length - 1) {
-                            countOfAvailablePositions++;
-                            possiblePosition = i;
-                        }
-                    }
-                }
-            }
-            if (countOfAvailablePositions == 1) {
-                System.out.println("You filled number " + number + " in position " + indexRow + ":" + possiblePosition);
-                sudoku[indexRow][possiblePosition] = number;
-                isRowFilled = true;
-            }
-        }
-        Item item = new Item(indexRow, false);
-        isRowFilled = isRowFilled | fillUnoccupiedNumber(item, numbersToCheckInRow, sudoku, occupiedNumbersForChars);
         return isRowFilled;
     }
 
@@ -391,10 +350,7 @@ public class Solver {
             localTablesMethod(sudoku);
         }
         if (!isFoundNumberToFill) {
-            if (isNumbersRepeatForSquares(sudoku) || isNumbersRepeatForLine(sudoku)) {
-                prettyPrint(sudoku);
-                throw new SudokuException("Wrong input data. Sudoku can't be solved");
-            }
+            checkRepeatingNumbers(sudoku);
         }
     }
 
@@ -402,18 +358,12 @@ public class Solver {
         boolean result = false;
         for (int i = 0; i < sudoku.length; i++) {
             int[] row = sudoku[i];
-            Map<Integer, Set<Integer>> rowTable = getLocalTable(false, sudoku, i, row);
-            reduceLocalTable(rowTable);
+            Map<Integer, Set<Integer>> rowTable = getRowLocalTable(sudoku, i, row);
             boolean reduced = reduceLocalTable(rowTable);
             if (reduced) {
                 result = result | fillFromLocalTable(ROW, sudoku, i, rowTable);
             }
-            for (Map.Entry<Integer, Set<Integer>> entry : rowTable.entrySet()) {
-                System.out.println(String.format("%d:%d, values: %s", entry.getKey(), i, entry.getValue()));
-            }
-            System.out.println();
         }
-        System.out.println("---------------------------------------");
         return result;
     }
 
@@ -421,28 +371,29 @@ public class Solver {
         boolean result = false;
         for (int i = 0; i < sudoku.length; i++) {
             int[] column = getColumn(i, sudoku);
-            Map<Integer, Set<Integer>> columnTable = getLocalTable(true, sudoku, i, column);
+            Map<Integer, Set<Integer>> columnTable = getColumnLocalTable(sudoku, i, column);
             boolean reduced = reduceLocalTable(columnTable);
             if (reduced) {
                 result = result | fillFromLocalTable(COLUMN, sudoku, i, columnTable);
             }
-            for (Map.Entry<Integer, Set<Integer>> entry : columnTable.entrySet()) {
-                System.out.println(String.format("%d:%d, values: %s", entry.getKey(), i, entry.getValue()));
-            }
-            System.out.println();
         }
         return result;
     }
 
     private boolean squareLocalTable(int[][] sudoku) {
+        boolean result = false;
         for (int i = 0; i < sudoku.length; i++) {
+            getSquareIndexesFromNumber(i);
         }
-        return false;
+        return result;
+    }
+
+    private int[] getSquareIndexesFromNumber(int number) {
+        return new int[0];
     }
 
 
     private boolean fillFromLocalTable(Type type, int[][] sudoku, int index, Map<Integer, Set<Integer>> table) {
-        boolean result = false;
         for (Map.Entry<Integer, Set<Integer>> entry : table.entrySet()) {
             Integer tableIndex = entry.getKey();
             Set<Integer> row = entry.getValue();
@@ -452,10 +403,10 @@ public class Solver {
                 } else {
                     sudoku[tableIndex][index] = row.iterator().next();
                 }
-                result = true;
+                return true;
             }
         }
-        return result;
+        return false;
     }
 
     private boolean reduceLocalTable(Map<Integer, Set<Integer>> table) {
@@ -534,10 +485,19 @@ public class Solver {
         return squareKnownNumbers;
     }
 
-    Map<Integer, Set<Integer>> getLocalTable(boolean isColumn, int[][] sudoku, int outerIndex, int[] array) {
+    Map<Integer, Set<Integer>> getColumnLocalTable(int[][] sudoku, int columnIndex, int[] array) {
+        int[] lineUnknownNumbers = getUnknownNumbersFromLine(array);
+        return getLocalTable(true, sudoku, columnIndex, lineUnknownNumbers);
+    }
+
+    Map<Integer, Set<Integer>> getRowLocalTable(int[][] sudoku, int rowIndex, int[] array) {
+        int[] lineUnknownNumbers = getUnknownNumbersFromLine(array);
+        return getLocalTable(false, sudoku, rowIndex, lineUnknownNumbers);
+    }
+
+    private Map<Integer, Set<Integer>> getLocalTable(boolean isColumn, int[][] sudoku, int outerIndex,
+                                                     int[] lineUnknownNumbers) {
         Map<Integer, Set<Integer>> table = new HashMap<>();
-        Set<Integer> lineUnknownNumbers = getUnknownNumbersFromArray(array);
-        System.out.println("Free numbers: " + lineUnknownNumbers);
         Map<Cell, Set<Integer>> squareKnownNumbers = getSquaresKnownNumbers(isColumn, outerIndex, sudoku);
         for (int j = 0; j < sudoku.length; j++) {
             for (int unknownNumber : lineUnknownNumbers) {
@@ -567,7 +527,7 @@ public class Solver {
         return isColumn ? new Cell(j, index) : new Cell(index, j);
     }
 
-    private Set<Integer> getUnknownNumbersFromArray(int[] array) {
+    private int[] getUnknownNumbersFromLine(int[] array) {
         Set<Integer> unknownNumbers = new HashSet<>();
         for (int i = NUMBER_MIN; i <= NUMBER_MAX; i++) {
             for (int j = 0; j < array.length; j++) {
@@ -579,7 +539,7 @@ public class Solver {
                 }
             }
         }
-        return unknownNumbers;
+        return Ints.toArray(unknownNumbers);
     }
 
     /*
@@ -589,17 +549,6 @@ public class Solver {
         for (int number : array) {
             if (number != 0) {
                 knownNumbers.add(number);
-            }
-        }
-        return knownNumbers;
-    }
-
-    private Map<Integer, Integer> getKnownNumbersFromArraySkipEmptyCells(int[] array) {
-        HashMap<Integer, Integer> knownNumbers = new HashMap<>();
-        for (int i = 0; i < array.length; i++) {
-            int number = array[i];
-            if (number != 0) {
-                knownNumbers.put(i, number);
             }
         }
         return knownNumbers;
@@ -659,8 +608,8 @@ public class Solver {
                 sudoku[i][rowIndexEmptyElement] = unknownNumber;
                 isFilledWithNewNumber = true;
             }
-            if (isOneElementInColumnEmpty && sumOfColumnElements >= MIN_8_DIGIT_SUM &&
-                    sumOfColumnElements <= MAX_8_DIGIT_SUM) {
+            if (isOneElementInColumnEmpty && sumOfColumnElements >= MIN_8_DIGIT_SUM
+                    && sumOfColumnElements <= MAX_8_DIGIT_SUM) {
                 int unknownNumber = SUM_OF_NUMBERS_TO_MAX_ELEMENT - sumOfColumnElements;
                 sudoku[columnIndexEmptyElement][i] = unknownNumber;
                 isFilledWithNewNumber = true;
@@ -714,8 +663,8 @@ public class Solver {
                         }
                         for (int k = i; k < HEIGHT_SQUARE; k++) {
                             int indexVerticalOfComparedValue = k + shiftVertical;
-                            for (int l = 0; l < WIDTH_SQUARE; l++) {
-                                int indexHorizontalOfComparedValue = l + shiftHorizontal;
+                            for (int p = 0; p < WIDTH_SQUARE; p++) {
+                                int indexHorizontalOfComparedValue = p + shiftHorizontal;
                                 if (indexVerticalOfCurrentValue == indexVerticalOfComparedValue
                                         && (indexHorizontalOfComparedValue < indexHorizontalOfCurrentValue ||
                                         indexHorizontalOfCurrentValue == indexHorizontalOfComparedValue)) {
