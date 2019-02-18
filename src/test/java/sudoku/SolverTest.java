@@ -20,7 +20,7 @@ public class SolverTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void assertFillVerticalHorizontalLines() {
+    public void shouldFillVerticalAndHorizontalLines() {
         int[][] result = new int[][]{
                 {1, 7, 3, 2, 6, 4, 5, 1, 9},
                 {6, 9, 4, 8, 3, 5, 1, 7, 2},
@@ -73,7 +73,7 @@ public class SolverTest {
     }
 
     @Test
-    public void shouldSolveWithThreeLevelsComplexity() {
+    public void shouldSolveThreeLevelsComplexity() {
         int[][] result = {
                 {1, 5, 4, 2, 9, 3, 6, 7, 8},
                 {6, 2, 7, 5, 1, 8, 3, 9, 4},
@@ -134,7 +134,7 @@ public class SolverTest {
     }
 
     @Test
-    public void shouldSolveWithFourLevelsComplexity() {
+    public void shouldSolveFourLevelsComplexity() {
         int[][] result = {
                 {8, 9, 7, 4, 5, 1, 6, 2, 3},
                 {2, 4, 1, 3, 7, 6, 5, 8, 9},
@@ -199,7 +199,7 @@ public class SolverTest {
     }
 
     @Test
-    public void shouldSolveWithFiveLevelsComplexity() {
+    public void shouldSolveFiveLevelsComplexity() {
         int[][] result = {
                 {6, 9, 3, 5, 4, 7, 8, 1, 2},
                 {1, 4, 7, 2, 3, 8, 6, 5, 9},
@@ -231,6 +231,38 @@ public class SolverTest {
     }
 
     @Test
+    public void shouldPartiallySolveSixLevelsComplexity() {
+        int[][] result = {
+                {0, 5, 0, 0, 6, 0, 0, 0, 0},
+                {0, 1, 0, 5, 7, 9, 0, 2, 0},
+                {4, 0, 0, 0, 8, 0, 5, 0, 0},
+
+                {8, 2, 1, 7, 0, 5, 0, 6, 9},
+                {0, 7, 0, 0, 0, 0, 0, 0, 0},
+                {0, 4, 0, 6, 2, 1, 7, 8, 0},
+
+                {5, 6, 4, 0, 1, 0, 0, 0, 0},
+                {1, 0, 0, 0, 5, 6, 0, 3, 0},
+                {0, 0, 0, 0, 0, 0, 6, 5, 1}};
+        int[][] inputData = {
+                {0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 1, 0, 0, 7, 9, 0, 2, 0},
+                {4, 0, 0, 0, 8, 0, 5, 0, 0},
+
+                {0, 2, 1, 0, 0, 0, 0, 0, 9},
+                {0, 7, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 6, 2, 0, 7, 8, 0},
+
+                {5, 6, 4, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 5, 0, 0, 3, 0},
+                {0, 0, 0, 0, 0, 0, 6, 5, 1}};
+
+        solver.solve(inputData);
+
+        assertArrayEquals(inputData, result);
+    }
+
+    @Test
     public void shouldFillLocalColumnTable() {
         int[][] inputData = {
                 {0, 5, 0, 0, 6, 0, 0, 0, 0},
@@ -253,7 +285,7 @@ public class SolverTest {
         int columnIdx = 0;
         int[] column = solver.getColumn(columnIdx, inputData);
 
-        Map<Integer, Set<Integer>> columnTableResult = solver.getLocalTable(true, inputData, columnIdx, column);
+        Map<Integer, Set<Integer>> columnTableResult = solver.getColumnLocalTable(inputData, columnIdx, column);
 
         assertEquals(columnTable, columnTableResult);
 
@@ -267,7 +299,7 @@ public class SolverTest {
         columnIdx = 6;
         column = solver.getColumn(columnIdx, inputData);
 
-        columnTableResult = solver.getLocalTable(true, inputData, columnIdx, column);
+        columnTableResult = solver.getColumnLocalTable(inputData, columnIdx, column);
 
         assertEquals(columnTable, columnTableResult);
     }
@@ -296,8 +328,7 @@ public class SolverTest {
         rowTable.put(8, newHashSet(3, 4, 7, 8));
         int rowIdx = 0;
 
-        Map<Integer, Set<Integer>> columnTableResult = solver.getLocalTable(false, inputData, rowIdx,
-                inputData[rowIdx]);
+        Map<Integer, Set<Integer>> columnTableResult = solver.getRowLocalTable(inputData, rowIdx, inputData[rowIdx]);
 
         assertEquals(rowTable, columnTableResult);
 
@@ -310,7 +341,7 @@ public class SolverTest {
         rowTable.put(5, newHashSet(2, 3, 4, 7, 8));
         rowIdx = 8;
 
-        columnTableResult = solver.getLocalTable(false, inputData, rowIdx, inputData[rowIdx]);
+        columnTableResult = solver.getRowLocalTable(inputData, rowIdx, inputData[rowIdx]);
 
         assertEquals(rowTable, columnTableResult);
     }
