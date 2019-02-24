@@ -3,7 +3,11 @@ package sudoku;
 import com.google.common.primitives.Ints;
 import lombok.extern.log4j.Log4j2;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static sudoku.Type.COLUMN;
 import static sudoku.Type.ROW;
@@ -45,11 +49,15 @@ public class Solver {
         prettyPrint(array);
     }
 
-    private static void prettyPrint(int[][] array) {
+     private static void prettyPrint(int[][] array) {
         for (int i = 0; i < array.length; i++) {
             int[] innerArray = array[i];
             for (int j = 0; j < innerArray.length; j++) {
-                System.out.print(array[i][j] + ", ");
+                System.out.print(innerArray[j]);
+                if (j == innerArray.length - 1) {
+                    continue;
+                }
+                System.out.print(", ");
                 if ((j + 1) % SQUARE_BOUNDARY == 0) {
                     System.out.print("  ");
                 }
@@ -399,9 +407,9 @@ public class Solver {
             Set<Integer> row = entry.getValue();
             if (row.size() == 1) {
                 if (type.equals(COLUMN)) {
-                    sudoku[index][tableIndex] = row.iterator().next();
-                } else {
                     sudoku[tableIndex][index] = row.iterator().next();
+                } else {
+                    sudoku[index][tableIndex] = row.iterator().next();
                 }
                 return true;
             }
@@ -543,7 +551,7 @@ public class Solver {
     }
 
     /*
-    TODO: double check these two commented methods
+    TODO: double check this method
     private Set<Integer> getKnownNumbersFromArray(int[] array) {
         Set<Integer> knownNumbers = new HashSet<>();
         for (int number : array) {

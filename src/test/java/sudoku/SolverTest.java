@@ -48,7 +48,7 @@ public class SolverTest {
 
         solver.fillNumberInRowAndColumn(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
@@ -101,7 +101,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
 
         result = new int[][]{
                 {5, 1, 6, 2, 7, 3, 4, 8, 9},
@@ -130,7 +130,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
@@ -162,7 +162,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
@@ -179,7 +179,6 @@ public class SolverTest {
                 {9, 5, 4, 8, 2, 1, 6, 7, 3},
                 {2, 6, 7, 3, 4, 5, 1, 9, 8},
                 {3, 1, 8, 6, 9, 7, 4, 2, 5}};
-
         int[][] inputData = {
                 {0, 0, 0, 7, 0, 0, 9, 1, 2},
                 {8, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -195,7 +194,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
@@ -227,7 +226,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
@@ -259,7 +258,7 @@ public class SolverTest {
 
         solver.solve(inputData);
 
-        assertArrayEquals(inputData, result);
+        assertArrayEquals(result, inputData);
     }
 
     @Test
