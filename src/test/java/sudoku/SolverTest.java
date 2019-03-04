@@ -345,4 +345,43 @@ public class SolverTest {
         assertEquals(rowTable, columnTableResult);
     }
 
+    @Test
+    public void shouldFillLocalSquareTable() {
+        int[][] inputData = {
+                {0, 5, 0, 0, 6, 0, 0, 0, 0},
+                {0, 1, 0, 5, 7, 9, 0, 2, 0},
+                {4, 0, 0, 0, 8, 0, 5, 0, 0},
+
+                {8, 2, 1, 7, 0, 5, 0, 6, 9},
+                {0, 7, 0, 0, 0, 0, 0, 0, 0},
+                {0, 4, 0, 6, 2, 1, 7, 8, 0},
+
+                {5, 6, 4, 0, 1, 0, 0, 0, 0},
+                {1, 0, 0, 0, 5, 6, 0, 3, 0},
+                {0, 0, 0, 0, 0, 0, 6, 5, 1}};
+        Map<Integer, Set<Integer>> squareTable = new HashMap<>();
+        squareTable.put(0, newHashSet(2,3,7,9));
+        squareTable.put(2, newHashSet(2,3,7,8,9));
+        squareTable.put(3, newHashSet(3,6));
+        squareTable.put(5, newHashSet(3,6,8));
+        squareTable.put(7, newHashSet(3,9));
+        squareTable.put(8, newHashSet(2,3,6,7,9));
+
+        Map<Integer, Set<Integer>> squareTableResult = solver.getSquareLocalTable(inputData,
+                new Cell(0,0), newHashSet(5,1,4));
+
+        assertEquals(squareTable, squareTableResult);
+
+        squareTable.clear();
+        squareTable.put(3, newHashSet(3,6,9));
+        squareTable.put(5, newHashSet(3,5,6,9));
+        squareTable.put(6, newHashSet(3,9));
+        squareTable.put(8, newHashSet(3,5,9));
+
+        squareTableResult = solver.getSquareLocalTable(inputData, new Cell(1,0),
+                newHashSet(8,2,1,7,4));
+
+        assertEquals(squareTable, squareTableResult);
+    }
+
 }
