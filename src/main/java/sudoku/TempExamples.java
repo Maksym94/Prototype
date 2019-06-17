@@ -2,7 +2,7 @@ package sudoku;
 
 public class TempExamples {
 
-    public void emaples() {
+    public void examples() {
         /*int[][] array = {
                 {0, 0, 0, 0, 0, 0, 0, 0, 0},
                 {0, 0, 0, 0, 0, 0, 0, 0, 0},

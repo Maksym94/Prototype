@@ -3,10 +3,12 @@ package sudoku;
 import com.google.common.primitives.Ints;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,13 +26,14 @@ public class Solver {
     private static final int MAX_8_DIGIT_SUM = 44;
     private static final int SQUARE_BOUNDARY = 3;
     private static final int WIDTH_SQUARE = 3;
+    private static final int NUMBERS_FOR_GUESSING = 2;
     private static final String ARRAY_SIZE_INCORRECT = "Size of two dimensional array should be 9x9, but";
 
     //Sum of numbers in section to find which number is not exists in a row or a column;
     private static final int SUM_OF_NUMBERS_TO_MAX_ELEMENT = NUMBER_MAX * (NUMBER_MAX + 1) / 2;
 
-    private int amountOfHorizontalSquares;
-    private int amountOfVerticalSquares;
+    private int horizontalSquaresCount;
+    private int verticalSquaresCount;
 
     public static void main(String[] args) {
         int[][] array = {
@@ -76,17 +79,29 @@ public class Solver {
             System.out.println("Array of values is not in a range of 1...9");
             return;
         }
-        amountOfHorizontalSquares = getAmountHorizontalSquares(sudoku[0]);
-        amountOfVerticalSquares = getAmountVerticalSquares(sudoku);
+        horizontalSquaresCount = getAmountHorizontalSquares(sudoku[0]);
+        verticalSquaresCount = getAmountVerticalSquares(sudoku);
 
+        invokeBaseSolveMethods(sudoku);
+        invokeAmbiguousSolveMethods(sudoku);
+
+        checkRepeatingNumbers(sudoku);
+    }
+
+    private void invokeBaseSolveMethods(int[][] sudoku) {
         smallSquaresMethod(sudoku);
-        if (isSudokuHasEmptyCells(sudoku)) {
+        if (hasEmptyCells(sudoku)) {
             columnRowsMethod(sudoku);
         }
-        if (isSudokuHasEmptyCells(sudoku)) {
+        if (hasEmptyCells(sudoku)) {
             localTablesMethod(sudoku);
         }
-        checkRepeatingNumbers(sudoku);
+    }
+
+    private void invokeAmbiguousSolveMethods(int[][] sudoku) {
+        if (hasEmptyCells(sudoku)) {
+            guessNumberMethod(sudoku);
+        }
     }
 
     private void checkRepeatingNumbers(int[][] sudoku) {
@@ -135,8 +150,8 @@ public class Solver {
     }
 
     private void smallSquaresMethod(int[][] sudoku) {
-        for (int i = 0; i < amountOfVerticalSquares; i++) {
-            for (int j = 0; j < amountOfHorizontalSquares; j++) {
+        for (int i = 0; i < verticalSquaresCount; i++) {
+            for (int j = 0; j < horizontalSquaresCount; j++) {
                 int amountFreeCells = getAmountOfFreeCellsInSquare(i, j, sudoku);
                 if (amountFreeCells == 0) {
                     continue;
@@ -193,9 +208,6 @@ public class Solver {
         return indexSquareVertical * HEIGHT_SQUARE;
     }
 
-    /**
-     * @return flag of free number for current square
-     */
     private static boolean isNumberUniqueForSquare(int number, int indexSquareVertical,
                                                    int indexSquareHorizontal, int[][] sudoku) {
         int shiftVertical = getShiftVertical(indexSquareVertical);
@@ -215,7 +227,7 @@ public class Solver {
         if (isFoundNumberToFill) {
             smallSquaresMethod(sudoku);
         }
-        if (isSudokuHasEmptyCells(sudoku) && isFoundNumberToFill) {
+        if (hasEmptyCells(sudoku) && isFoundNumberToFill) {
             columnRowsMethod(sudoku);
         }
         if (!isFoundNumberToFill) {
@@ -357,7 +369,7 @@ public class Solver {
         if (isFoundNumberToFill) {
             columnRowsMethod(sudoku);
         }
-        if (isSudokuHasEmptyCells(sudoku) && isFoundNumberToFill) {
+        if (hasEmptyCells(sudoku) && isFoundNumberToFill) {
             localTablesMethod(sudoku);
         }
         if (!isFoundNumberToFill) {
@@ -591,6 +603,15 @@ public class Solver {
         return table;
     }
 
+    private void guessNumberMethod(int[][] sudoku) {
+        List<Cell> cells = new ArrayList<>();
+        for (int i = 0; i < sudoku.length; i++) {
+            for (int j = 0; j < sudoku[i].length; j++) {
+
+            }
+        }
+    }
+
     private int getValueFromIndexes(boolean isColumn, int outerIndex, int innerIndex, int[][] sudoku) {
         return isColumn ? sudoku[innerIndex][outerIndex] : sudoku[outerIndex][innerIndex];
     }
@@ -688,7 +709,7 @@ public class Solver {
         return isFilledWithNewNumber;
     }
 
-    private boolean isSudokuHasEmptyCells(int[][] sudoku) {
+    private boolean hasEmptyCells(int[][] sudoku) {
         for (int[] innerArray : sudoku) {
             for (int value : innerArray) {
                 if (value == 0) {
@@ -719,9 +740,9 @@ public class Solver {
     }
 
     private boolean isNumbersRepeatForSquares(int[][] sudoku) {
-        for (int m = 0; m < amountOfVerticalSquares; m++) {
+        for (int m = 0; m < verticalSquaresCount; m++) {
             int shiftVertical = getShiftVertical(m);
-            for (int n = 0; n < amountOfHorizontalSquares; n++) {
+            for (int n = 0; n < horizontalSquaresCount; n++) {
                 int shiftHorizontal = getShiftHorizontal(n);
                 for (int i = 0; i < HEIGHT_SQUARE; i++) {
                     int indexVerticalOfCurrentValue = i + shiftVertical;
